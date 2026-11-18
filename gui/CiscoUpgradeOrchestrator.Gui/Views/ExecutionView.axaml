@@ -1,0 +1,319 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+             xmlns:models="using:CiscoUpgradeOrchestrator.Gui.Models"
+             x:Class="CiscoUpgradeOrchestrator.Gui.Views.ExecutionView"
+             x:DataType="vm:ExecutionViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.fieldError">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="28,20,28,20">
+
+        <!-- Stage 3 Header + Live Status & Elapsed Timer -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Live execution" Classes="pageTitle"/>
+                <TextBlock Text="Run staged image transfers, full install-mode upgrades, or resume an interrupted job with live output"
+                           Classes="caption"/>
+            </StackPanel>
+
+            <!-- Live Execution Status Strip -->
+            <Border Grid.Column="1"
+                    Classes="recessedBox"
+                    Padding="14,8"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <ui:ProgressRing IsVisible="{Binding IsRunning}" Width="14" Height="14"/>
+                    <Ellipse Classes="statusDot"
+                             IsVisible="{Binding !IsRunning}"
+                             Fill="{DynamicResource InfoBrush}"/>
+                    <TextBlock Text="{Binding ExecutionStatus}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <Border Width="1" Height="14" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+                    <TextBlock Text="{Binding ElapsedTime}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               FontFamily="{DynamicResource CodeFontFamily}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Execution Configuration Card -->
+        <Border Grid.Row="1" Classes="surfaceCard" Padding="20,16" Margin="0,0,0,16">
+            <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto">
+
+                    <!-- Mode -->
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
+                        <TextBlock Text="Execution mode" Classes="fieldLabel"/>
+                        <ComboBox SelectedIndex="{Binding SelectedModeIndex, Mode=TwoWay}"
+                                  IsEnabled="{Binding !IsRunning}"
+                                  Height="32"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="Full upgrade (stage, reload, verify, commit)"/>
+                            <ComboBoxItem Content="Stage only (SCP, checksum, install add)"/>
+                            <ComboBoxItem Content="Resume interrupted job"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Linked Stage 1 Switch Source (No manual .xlsx input needed) -->
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,12">
+                        <TextBlock Text="Target switches (from Stage 1)" Classes="fieldLabel"/>
+                        <Border Classes="recessedBox"
+                                Height="32"
+                                Padding="10,0"
+                                ToolTip.Tip="{Binding InventoryFilePath}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,8,0"
+                                         IsVisible="{Binding IsStage1Ready}"
+                                         Fill="{DynamicResource SuccessBrush}"/>
+                                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,8,0"
+                                         IsVisible="{Binding !IsStage1Ready}"
+                                         Fill="{DynamicResource WarningBrush}"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Stage1SourceSummary}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <Button Grid.Column="2"
+                                        Classes="subtle"
+                                        Height="24"
+                                        Padding="8,0"
+                                        Margin="8,0,0,0"
+                                        IsEnabled="{Binding !IsRunning}"
+                                        Command="{Binding EditSwitchesInStage1Command}">
+                                    <TextBlock Text="Edit" FontSize="11" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Job ID -->
+                    <StackPanel Grid.Row="1" Grid.Column="0">
+                        <TextBlock Text="Job ID (optional for new runs)" Classes="fieldLabel"/>
+                        <TextBox Text="{Binding JobId, Mode=TwoWay}"
+                                 IsEnabled="{Binding !IsRunning}"
+                                 Height="32"
+                                 CornerRadius="6"
+                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                 Watermark="Auto-populated from Stage 2 or leave blank"
+                                 VerticalContentAlignment="Center"/>
+                        <TextBlock Text="{Binding JobIdError}" IsVisible="{Binding HasJobIdError}" Classes="fieldError"/>
+                    </StackPanel>
+
+                    <!-- Safety Toggles -->
+                    <StackPanel Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,4">
+                        <TextBlock Text="Guardrails and flags" Classes="fieldLabel"/>
+                        <StackPanel Orientation="Horizontal" Spacing="20">
+                            <CheckBox Content="Dry run" IsChecked="{Binding DryRun, Mode=TwoWay}" IsEnabled="{Binding CanUseDryRun}"/>
+                            <CheckBox Content="Auto-approve" IsChecked="{Binding AutoApprove, Mode=TwoWay}" IsEnabled="{Binding CanUseAutoApprove}"/>
+                            <CheckBox Content="Retry failed" IsChecked="{Binding RetryFailed, Mode=TwoWay}" IsEnabled="{Binding !IsRunning}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <Border Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                <!-- First-Class Validated SSH Session Credentials (Zero .env Dependency) -->
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <TextBlock Grid.Column="0" Text="Switch SSH credentials" FontSize="13" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ActiveCredentialLabel}"
+                                   IsVisible="{Binding HasActiveCredentialLabel}"
+                                   FontSize="11.5"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SuccessBrush}"/>
+                        <ComboBox Grid.Column="2"
+                                  ItemsSource="{Binding VaultPresets}"
+                                  SelectedItem="{Binding SelectedVaultPreset, Mode=TwoWay}"
+                                  IsVisible="{Binding HasVaultPresets}"
+                                  IsEnabled="{Binding !IsRunning}"
+                                  PlaceholderText="Load from vault..."
+                                  Height="30"
+                                  Width="190"
+                                  Margin="0,0,8,0">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:CredentialEntry">
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="3"
+                                Classes="subtle"
+                                Height="30"
+                                Padding="10,0"
+                                IsEnabled="{Binding !IsRunning}"
+                                Command="{Binding OpenCredentialsVaultCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Permissions" FontSize="12"/>
+                                <TextBlock Text="Encrypted vault" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,12,*,12,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="SSH username *" Classes="fieldLabel"/>
+                            <TextBox Text="{Binding SessionUsername, Mode=TwoWay}"
+                                     IsEnabled="{Binding !IsRunning}"
+                                     Height="32" CornerRadius="6"
+                                     Watermark="admin"
+                                     VerticalContentAlignment="Center"/>
+                            <TextBlock Text="{Binding UsernameError}" IsVisible="{Binding HasUsernameError}" Classes="fieldError"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="SSH password *" Classes="fieldLabel"/>
+                            <TextBox Text="{Binding SessionPassword, Mode=TwoWay}"
+                                     IsEnabled="{Binding !IsRunning}"
+                                     PasswordChar="●"
+                                     Height="32" CornerRadius="6"
+                                     Watermark="Device SSH password"
+                                     VerticalContentAlignment="Center"/>
+                            <TextBlock Text="{Binding PasswordError}" IsVisible="{Binding HasPasswordError}" Classes="fieldError"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="Enable secret (optional)" Classes="fieldLabel"/>
+                            <TextBox Text="{Binding SessionEnableSecret, Mode=TwoWay}"
+                                     IsEnabled="{Binding !IsRunning}"
+                                     PasswordChar="●"
+                                     Height="32" CornerRadius="6"
+                                     Watermark="Optional enable secret"
+                                     VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <Border Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                <!-- Execution Action Strip -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent"
+                                Height="36"
+                                Padding="18,0"
+                                IsEnabled="{Binding !IsRunning}"
+                                Command="{Binding StartExecutionCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ui:SymbolIcon Symbol="Play" FontSize="13"/>
+                                <TextBlock Text="Start execution" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="36"
+                                Padding="14,0"
+                                IsEnabled="{Binding IsRunning}"
+                                Command="{Binding CancelExecutionCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Stop" FontSize="13"/>
+                                <TextBlock Text="Stop execution" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="subtle"
+                                Height="32"
+                                Padding="10,0"
+                                IsEnabled="{Binding HasConsoleOutput}"
+                                Click="OnCopyLogClick">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Copy" FontSize="12"/>
+                                <TextBlock Text="Copy log" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="32"
+                                Padding="10,0"
+                                IsEnabled="{Binding HasConsoleOutput}"
+                                Command="{Binding ClearConsoleCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Delete" FontSize="12"/>
+                                <TextBlock Text="Clear" FontSize="12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Live Streaming Orchestrator Terminal -->
+        <Border Grid.Row="2" Classes="surfaceCard" Padding="16,12" Margin="0,0,0,16">
+            <Grid RowDefinitions="Auto,*">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock Text="Orchestrator telemetry stream" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1"
+                               Text="Real-time stdout / stderr"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </Grid>
+
+                <Border Grid.Row="1" Classes="recessedBox" Padding="12">
+                    <Grid>
+                        <ScrollViewer x:Name="ConsoleScrollViewer"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto">
+                            <SelectableTextBlock Text="{Binding ConsoleOutput}"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 FontSize="12"
+                                                 LineHeight="19"
+                                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </ScrollViewer>
+
+                        <TextBlock IsVisible="{Binding !HasConsoleOutput}"
+                                   Text="Console output will stream here when an upgrade, staging transfer, or dry run starts."
+                                   Classes="caption"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Stage Bottom Action Bar -->
+        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0"
+                    Classes="subtle"
+                    Height="36"
+                    Padding="12,0"
+                    IsEnabled="{Binding !IsRunning}"
+                    Command="{Binding BackToPlanCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:SymbolIcon Symbol="ChevronLeft" FontSize="13"/>
+                    <TextBlock Text="Back to plan" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="2"
+                    Classes="subtle"
+                    Height="36"
+                    Padding="14,0"
+                    Command="{Binding GoToHistoryCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Inspect StateStore history" VerticalAlignment="Center"/>
+                    <ui:SymbolIcon Symbol="ChevronRight" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,558 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+             x:Class="CiscoUpgradeOrchestrator.Gui.Views.InventoryView"
+             x:DataType="vm:InventoryViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.fieldError">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style Selector="ListBox.cardDeck ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
+        <Style Selector="ListBox.cardDeck ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.cardDeck ListBoxItem:selected Border.deviceCard">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+        </Style>
+        <Style Selector="ListBox.cardDeck ListBoxItem:pointerover Border.deviceCard">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="28,20,28,20">
+
+        <!-- Stage 1 Header + Inline Device Status Dots -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Switch inventory" Classes="pageTitle"/>
+                <TextBlock Text="Add and validate switches directly with interactive cards — no CSV or Excel file required"
+                           Classes="caption"/>
+            </StackPanel>
+
+            <!-- Inline Counts (Dot + Plain Text) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Ellipse Classes="statusDot" Fill="{DynamicResource InfoBrush}"/>
+                    <TextBlock Text="{Binding DeviceCount, StringFormat='{}{0} switches'}"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                            IsVisible="{Binding HasDevices}">
+                    <Ellipse Classes="statusDot"
+                             IsVisible="{Binding IsValid}"
+                             Fill="{DynamicResource SuccessBrush}"/>
+                    <Ellipse Classes="statusDot"
+                             IsVisible="{Binding !IsValid}"
+                             Fill="{DynamicResource DangerBrush}"/>
+                    <TextBlock Text="{Binding ValidCardCount, StringFormat='{}{0} ready'}"
+                               IsVisible="{Binding IsValid}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource SuccessBrush}"/>
+                    <TextBlock Text="{Binding ErrorCount, StringFormat='{}{0} issues'}"
+                               IsVisible="{Binding !IsValid}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource DangerBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Compact Validation Feedback Strip -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding HasValidationResult}"
+                Classes="recessedBox"
+                Padding="16,10"
+                Margin="0,0,0,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,10,0"
+                         IsVisible="{Binding IsValid}" Fill="{DynamicResource SuccessBrush}"/>
+                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,10,0"
+                         IsVisible="{Binding !IsValid}" Fill="{DynamicResource DangerBrush}"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ValidationSummary}"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"
+                           Margin="0,0,16,0"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            Spacing="6"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding InventoryFilePath}">
+                    <TextBlock Text="Workbook"
+                               FontSize="11"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <TextBlock Text="{Binding InventoryFileDisplayName}"
+                               FontSize="11.5"
+                               FontFamily="{DynamicResource CodeFontFamily}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Card-Based Split Workspace: Switch Card Deck (Left) + Card Editor (Right) -->
+        <Grid Grid.Row="2" ColumnDefinitions="360,16,*" Margin="0,0,0,16">
+
+            <!-- Left Column: Switch Cards Deck -->
+            <Border Grid.Column="0" Classes="surfaceCard" Padding="14">
+                <Grid RowDefinitions="Auto,Auto,*">
+
+                    <!-- Deck Toolbar -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                        <TextBlock Text="Switch cards" Classes="sectionTitle" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Classes="accent"
+                                Height="32"
+                                Padding="12,0"
+                                Command="{Binding AddSwitchCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Add" FontSize="12"/>
+                                <TextBlock Text="Add switch" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- Filter Search -->
+                    <TextBox Grid.Row="1"
+                             Text="{Binding FilterQuery, Mode=TwoWay}"
+                             Height="32"
+                             CornerRadius="6"
+                             Margin="0,0,0,12"
+                             Watermark="Filter cards by hostname, IP, platform..."
+                             VerticalContentAlignment="Center"/>
+
+                    <!-- Cards List -->
+                    <Grid Grid.Row="2">
+                        <ListBox Classes="cardDeck"
+                                 ItemsSource="{Binding FilteredCards}"
+                                 SelectedItem="{Binding SelectedCard, Mode=TwoWay}"
+                                 IsVisible="{Binding HasDevices}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DeviceCardViewModel">
+                                    <Border Classes="deviceCard"
+                                            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                            BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="14,12">
+                                        <StackPanel Spacing="6">
+                                            <!-- Row 1: Dot + Hostname + Platform -->
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,8,0"
+                                                         IsVisible="{Binding IsCardValid}"
+                                                         Fill="{DynamicResource SuccessBrush}"/>
+                                                <Ellipse Grid.Column="0" Classes="statusDot" Margin="0,0,8,0"
+                                                         IsVisible="{Binding !IsCardValid}"
+                                                         Fill="{DynamicResource DangerBrush}"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding DisplayHostname}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding Platform}"
+                                                           FontSize="11"
+                                                           FontFamily="{DynamicResource CodeFontFamily}"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </Grid>
+
+                                            <!-- Row 2: IP + Redundancy Group -->
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding DisplayIp}"
+                                                           FontSize="12"
+                                                           FontFamily="{DynamicResource CodeFontFamily}"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <Border Grid.Column="1"
+                                                        IsVisible="{Binding HasRedundancyGroup}"
+                                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                                        CornerRadius="4"
+                                                        Padding="6,2">
+                                                    <TextBlock Text="{Binding RedundancyGroup}"
+                                                               FontSize="10.5"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- Row 3: Validation / Version Status -->
+                                            <TextBlock Text="{Binding CardSubtitle}"
+                                                       IsVisible="{Binding IsCardValid}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding CardSubtitle}"
+                                                       IsVisible="{Binding !IsCardValid}"
+                                                       FontSize="11"
+                                                       FontWeight="Medium"
+                                                       Foreground="{DynamicResource DangerBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!-- Empty Deck State -->
+                        <StackPanel IsVisible="{Binding !HasDevices}"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Spacing="10"
+                                    Margin="16">
+                            <TextBlock Text="No switch cards yet"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Click 'Add switch' above to enter switch details directly, or import an existing Excel workbook below"
+                                       Classes="caption"
+                                       TextAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Right Column: Selected Switch Card Editor with Live Per-Field Validation -->
+            <Border Grid.Column="2" Classes="surfaceCard" Padding="0" ClipToBounds="True">
+                <Grid>
+                    <!-- Editor Scroll Area -->
+                    <ScrollViewer IsVisible="{Binding HasSelectedCard}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="20" Margin="24" DataContext="{Binding SelectedCard}">
+
+                            <!-- Editor Header -->
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Classes="statusDot"
+                                                 IsVisible="{Binding IsCardValid}"
+                                                 Fill="{DynamicResource SuccessBrush}"/>
+                                        <Ellipse Classes="statusDot"
+                                                 IsVisible="{Binding !IsCardValid}"
+                                                 Fill="{DynamicResource DangerBrush}"/>
+                                        <TextBlock Text="{Binding DisplayHostname}"
+                                                   FontSize="17"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="All required fields are validated in real time against orchestrator rules"
+                                               Classes="caption"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <Button Classes="subtle"
+                                            Height="32"
+                                            Padding="10,0"
+                                            Command="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).DuplicateSelectedSwitchCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <ui:SymbolIcon Symbol="Copy" FontSize="12"/>
+                                            <TextBlock Text="Duplicate" FontSize="12" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="subtle"
+                                            Height="32"
+                                            Padding="10,0"
+                                            Command="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).RemoveSwitchCommand}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <ui:SymbolIcon Symbol="Delete" FontSize="12"/>
+                                            <TextBlock Text="Remove" FontSize="12" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Section 1: Identity & Reachability -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Identity and management access" Classes="sectionTitle"/>
+
+                                <Grid ColumnDefinitions="*,16,*">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Hostname *" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding Hostname, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 Watermark="SW-ACCESS-01"
+                                                 VerticalContentAlignment="Center"/>
+                                        <TextBlock Text="{Binding HostnameError}"
+                                                   IsVisible="{Binding HasHostnameError}"
+                                                   Classes="fieldError"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Management IP address *" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding IpAddress, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 Watermark="192.168.1.101"
+                                                 VerticalContentAlignment="Center"/>
+                                        <TextBlock Text="{Binding IpAddressError}"
+                                                   IsVisible="{Binding HasIpAddressError}"
+                                                   Classes="fieldError"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,16,140">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Catalyst platform *" Classes="fieldLabel"/>
+                                        <ComboBox ItemsSource="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).SupportedPlatforms}"
+                                                  SelectedItem="{Binding Platform, Mode=TwoWay}"
+                                                  Height="32"
+                                                  HorizontalAlignment="Stretch"/>
+                                        <TextBlock Text="{Binding PlatformError}"
+                                                   IsVisible="{Binding HasPlatformError}"
+                                                   Classes="fieldError"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="SSH port" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding SshPort, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 Watermark="22"
+                                                 VerticalContentAlignment="Center"/>
+                                        <TextBlock Text="{Binding SshPortError}"
+                                                   IsVisible="{Binding HasSshPortError}"
+                                                   Classes="fieldError"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Section 2: Target IOS-XE Software Image -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Target IOS-XE software image" Classes="sectionTitle"/>
+
+                                <Grid ColumnDefinitions="*,16,*">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Current version (optional)" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding CurrentVersion, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 Watermark="17.9.4a"
+                                                 VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Target IOS-XE version *" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding TargetVersion, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 Watermark="17.12.1"
+                                                 VerticalContentAlignment="Center"/>
+                                        <TextBlock Text="{Binding TargetVersionError}"
+                                                   IsVisible="{Binding HasTargetVersionError}"
+                                                   Classes="fieldError"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel>
+                                    <TextBlock Text="IOS-XE image path (.bin) *" Classes="fieldLabel"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding ImagePath, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 Margin="0,0,8,0"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 FontSize="12"
+                                                 Watermark="C:\Images\cat9k_iosxe.17.12.01.SPA.bin"
+                                                 VerticalContentAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                Classes="subtle"
+                                                Height="32"
+                                                Padding="12,0"
+                                                Click="OnBrowseImageClick">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <ui:SymbolIcon Symbol="OpenFolder" FontSize="12"/>
+                                                <TextBlock Text="Browse .bin" FontSize="12" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock Text="{Binding ImagePathError}"
+                                               IsVisible="{Binding HasImagePathError}"
+                                               Classes="fieldError"/>
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="Expected MD5 checksum (32 hex chars) *" Classes="fieldLabel"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding ImageMd5, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 Margin="0,0,8,0"
+                                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                                 FontSize="12"
+                                                 Watermark="32-character MD5 hash (or click Compute MD5)"
+                                                 VerticalContentAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                Classes="subtle"
+                                                Height="32"
+                                                Padding="12,0"
+                                                IsEnabled="{Binding !$parent[UserControl].((vm:InventoryViewModel)DataContext).IsComputingMd5}"
+                                                Command="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).ComputeSelectedMd5Command}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <ui:ProgressRing Width="12" Height="12"
+                                                                 IsVisible="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).IsComputingMd5}"/>
+                                                <ui:SymbolIcon Symbol="Calculator" FontSize="12"
+                                                               IsVisible="{Binding !$parent[UserControl].((vm:InventoryViewModel)DataContext).IsComputingMd5}"/>
+                                                <TextBlock Text="Compute MD5" FontSize="12" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <ProgressBar Height="3"
+                                                 Minimum="0"
+                                                 Maximum="100"
+                                                 Margin="0,8,0,0"
+                                                 Value="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).Md5Progress}"
+                                                 IsVisible="{Binding $parent[UserControl].((vm:InventoryViewModel)DataContext).IsComputingMd5}"/>
+                                    <TextBlock Text="{Binding ImageMd5Error}"
+                                               IsVisible="{Binding HasImageMd5Error}"
+                                               Classes="fieldError"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Section 3: Topology Isolation & Notes -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Topology batching and safety (optional)" Classes="sectionTitle"/>
+
+                                <Grid ColumnDefinitions="*,16,*">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Redundancy group" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding RedundancyGroup, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 Watermark="e.g., dist-pair-1"
+                                                 VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Notes" Classes="fieldLabel"/>
+                                        <TextBox Text="{Binding Notes, Mode=TwoWay}"
+                                                 Height="32" CornerRadius="6"
+                                                 Watermark="Rack location or maintenance notes"
+                                                 VerticalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Spacing="24" Margin="0,4,0,0">
+                                    <CheckBox Content="Out-of-band console verified" IsChecked="{Binding ConsoleVerified, Mode=TwoWay}"/>
+                                    <CheckBox Content="Include switch in upgrade run" IsChecked="{Binding Enabled, Mode=TwoWay}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Empty Inspector State -->
+                    <StackPanel IsVisible="{Binding !HasSelectedCard}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Spacing="10"
+                                Margin="32">
+                        <TextBlock Text="Select or add a switch card to edit"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Every switch card validates IP address, Catalyst platform, image path, MD5 checksum, and duplicates automatically"
+                                   Classes="caption"
+                                   TextAlignment="Center"
+                                   MaxWidth="420"/>
+                        <Button Classes="accent"
+                                Height="34"
+                                Padding="16,0"
+                                Margin="0,6,0,0"
+                                HorizontalAlignment="Center"
+                                Command="{Binding AddSwitchCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Add" FontSize="12"/>
+                                <TextBlock Text="Add your first switch" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+        </Grid>
+
+        <!-- Consistent Stage Bottom Action Bar -->
+        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                <Button Classes="subtle"
+                        Height="36"
+                        Padding="12,0"
+                        Click="OnBrowseInventoryClick"
+                        ToolTip.Tip="Optional: import switch rows from an existing Excel workbook">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="OpenFolder" FontSize="13"/>
+                        <TextBlock Text="Import .xlsx" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="subtle"
+                        Height="36"
+                        Padding="12,0"
+                        Command="{Binding SaveInventoryCommand}"
+                        ToolTip.Tip="Validate and save all switch cards to disk">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Save" FontSize="13"/>
+                        <TextBlock Text="Save inventory" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="subtle"
+                        Height="36"
+                        Padding="12,0"
+                        Command="{Binding ExportReportCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Share" FontSize="13"/>
+                        <TextBlock Text="Export report" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="subtle"
+                        Height="36"
+                        Padding="12,0"
+                        Command="{Binding OpenConfigCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Document" FontSize="13"/>
+                        <TextBlock Text="Edit config.yaml" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <Button Grid.Column="2"
+                    Classes="accent"
+                    Height="36"
+                    Padding="20,0"
+                    Command="{Binding ContinueToPlanCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Save &amp; continue to plan" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <ui:SymbolIcon Symbol="ChevronRight" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,183 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+             x:Class="CiscoUpgradeOrchestrator.Gui.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="20" Margin="24">
+
+            <!-- Header Title -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Cisco IOS-XE Upgrade Orchestrator"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Text="Safe, durable install-mode upgrades with topology-aware canary batching and Genie diffs"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+
+            <!-- Status & Environment Pill -->
+            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16,12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Checkmark" FontSize="18" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <TextBlock Text="{Binding PythonStatus}"
+                                   FontWeight="Medium"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <Button Content="Refresh"
+                                Classes="subtle"
+                                Height="32"
+                                Command="{Binding RefreshCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Metric KPI Cards -->
+            <Grid ColumnDefinitions="*,*,*,*" Margin="0,4">
+                <!-- Total Jobs -->
+                <Border Grid.Column="0" Margin="0,0,8,0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Total Jobs" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{Binding TotalJobs}" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Durable StateStore records" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Planned Jobs -->
+                <Border Grid.Column="1" Margin="8,0,8,0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Planned Jobs" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{Binding PlannedJobs}" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Awaiting execution" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Completed Jobs -->
+                <Border Grid.Column="2" Margin="8,0,8,0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Successful Upgrades" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{Binding CompletedJobs}" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Committed packages" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Failed / Alert Jobs -->
+                <Border Grid.Column="3" Margin="8,0,0,0"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Failed / Rolled Back" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="{Binding FailedJobs}" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Auto-aborted or halted" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Quick Action Cards -->
+            <TextBlock Text="Quick Actions" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Grid ColumnDefinitions="*,*,*,*" Margin="0,0">
+                <Button Grid.Column="0" Margin="0,0,8,0"
+                        Classes="subtle"
+                        Height="72"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding GoToInventoryCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <ui:SymbolIcon Symbol="Document" FontSize="20" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Inventory" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Parse &amp; Validate Excel" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="1" Margin="8,0,8,0"
+                        Classes="subtle"
+                        Height="72"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding GoToPlannerCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <ui:SymbolIcon Symbol="Calendar" FontSize="20" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Plan Batches" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Topology Canary Batches" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="2" Margin="8,0,8,0"
+                        Classes="subtle"
+                        Height="72"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding GoToExecutionCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <ui:SymbolIcon Symbol="Play" FontSize="20" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Execute Upgrade" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="Stage or Live Rollout" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="3" Margin="8,0,0,0"
+                        Classes="subtle"
+                        Height="72"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding GoToHistoryCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <ui:SymbolIcon Symbol="Clock" FontSize="20" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Job History" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <TextBlock Text="StateStore Leases &amp; Audit" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Recent Jobs DataGrid -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="Recent Jobs" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <DataGrid ItemsSource="{Binding RecentJobs}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          MaxHeight="260">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Job ID" Binding="{Binding JobId}" Width="140"/>
+                        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="100"/>
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                        <DataGridTextColumn Header="Operator" Binding="{Binding Operator}" Width="140"/>
+                        <DataGridTextColumn Header="Created At" Binding="{Binding CreatedAt}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

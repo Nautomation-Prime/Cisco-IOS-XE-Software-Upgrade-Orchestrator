@@ -252,6 +252,42 @@ python -m unittest discover -s tests -v
 Device-facing behavior must also be validated against the exact Catalyst model
 and IOS-XE release in a lab.
 
+## Desktop GUI Application (Avalonia UI 11 / FluentAvalonia)
+
+A cross-platform Fluent desktop interface (Windows 11 & macOS aware) is provided alongside the original Python CLI with zero breaking changes to CLI workflows:
+
+- **Technology**: Avalonia UI 11.2 + FluentAvalonia 2.1 (`.NET 8`) bridged to the Python automation engine via `gui_bridge.py` and streaming subprocess execution.
+- **4-Stage Guided Upgrade Pipeline**:
+  1. **Inventory**: Card-based Switch Inventory Deck & Card Editor with real-time field validation, duplicate hostname/IP detection, `.bin` firmware picker with automatic IOS-XE version inference, non-blocking MD5 checksum calculation with progress bar, and optional Excel/CSV import/export (no Excel required).
+  2. **Plan & Batches**: Automatically syncs Stage 1 switches and generates canary/wave upgrade plans with dry-run support and Job ID propagation.
+  3. **Execute**: Live streaming console output (batched for smooth rendering), interactive stage locking during active runs, and always-visible validated SSH credentials (username, password, optional enable secret) injected securely in-memory per run (no `.env` file required).
+  4. **History**: SQLite `StateStore` job history viewer with live status filter tiles (`All`, `Active`, `Halted`, `Failed`, `Completed`, `Cancelled`), per-device telemetry inspection, safe individual job deletion, and 2-step **Clear history** (automatically protecting actively leased/running jobs).
+- **Encrypted SSH Credentials Vault**: Local AES-256-GCM + PBKDF2-SHA256 (600,000 iterations) vault for saving reusable SSH credential presets and loading them directly into Stage 3.
+- **Native Desktop Polish**: 3-way synchronized theming (Light, Dark, System Default), native Windows caption glyphs & macOS traffic-light/menu integration, keyboard shortcuts (`Ctrl`/`⌘` `1`–`4`, `,`, `E`, `K`, `N`, `+`/`-`/`0`), and high-DPI UI zoom scaling (80%–150%).
+
+### Running the Desktop GUI
+
+```cmd
+run_gui.bat
+```
+or via PowerShell:
+```powershell
+.\run_gui.ps1
+```
+
+### Building a Complete Standalone Release (Windows)
+
+```powershell
+.\publish-all.ps1 -Version 1.0.0
+```
+Packages a self-contained `.NET 8` executable, relocatable embedded Python 3.12 runtime with all dependencies, Inno Setup installer, portable ZIP, `SHA256SUMS.txt`, and `update_manifest.json` under `dist/`.
+
+### Running GUI Headless Tests
+
+```powershell
+dotnet test gui\CiscoUpgradeOrchestrator.Gui.Tests\CiscoUpgradeOrchestrator.Gui.Tests.csproj
+```
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Free to use, modify and redistribute. If you'd like it tailored, deployed or extended for your estate, see [Work With Me](https://www.nautomationprime.io/work-with-me/).

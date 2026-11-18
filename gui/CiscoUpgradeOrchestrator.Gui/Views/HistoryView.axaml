@@ -1,0 +1,244 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+             x:Class="CiscoUpgradeOrchestrator.Gui.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,190,Auto,*" Margin="28,20,28,20">
+
+        <!-- Stage 4 Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="StateStore and job history" Classes="pageTitle"/>
+                <TextBlock Text="Inspect durable SQLite upgrade records, per-device stage transitions, and manage or clear job history"
+                           Classes="caption"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <!-- Inline Clear History Confirmation -->
+                <Border IsVisible="{Binding IsConfirmingClearHistory}"
+                        Background="{DynamicResource DangerSoftBrush}"
+                        BorderBrush="{DynamicResource DangerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Delete all inactive jobs?" FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource DangerBrush}"/>
+                        <Button Classes="accent"
+                                Height="26"
+                                Padding="10,0"
+                                Command="{Binding ConfirmClearHistoryCommand}">
+                            <TextBlock Text="Confirm clear" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="26"
+                                Padding="8,0"
+                                Command="{Binding CancelClearHistoryCommand}">
+                            <TextBlock Text="Cancel" FontSize="11.5" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Button Classes="subtle"
+                        Height="32"
+                        Padding="12,0"
+                        IsVisible="{Binding !IsConfirmingClearHistory}"
+                        IsEnabled="{Binding HasJobs}"
+                        Command="{Binding RequestClearHistoryCommand}"
+                        ToolTip.Tip="Remove all inactive/completed/failed jobs from SQLite StateStore">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Delete" FontSize="13"/>
+                        <TextBlock Text="Clear history" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Classes="subtle"
+                        Height="32"
+                        Padding="12,0"
+                        Command="{Binding LoadJobsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Refresh" FontSize="13"/>
+                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Clickable Metric Filter Strip (Inspired by Firmware Upgrade Orchestrator) -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
+            <Button Classes="metricTile"
+                    Classes.selected="{Binding IsFilterAll}"
+                    Margin="0,0,8,0"
+                    Command="{Binding FilterJobsCommand}"
+                    CommandParameter="All">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Total jobs" Classes="caption"/>
+                    <TextBlock Text="{Binding TotalJobs}" Classes="metricValue"/>
+                </StackPanel>
+            </Button>
+
+            <Button Classes="metricTile"
+                    Classes.selected="{Binding IsFilterPlanned}"
+                    Margin="4,0,4,0"
+                    Command="{Binding FilterJobsCommand}"
+                    CommandParameter="Planned">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Classes="statusDot" Fill="{DynamicResource InfoBrush}"/>
+                        <TextBlock Text="Planned / Active" Classes="caption"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding PlannedJobs}" Classes="metricValue"/>
+                </StackPanel>
+            </Button>
+
+            <Button Classes="metricTile"
+                    Classes.selected="{Binding IsFilterCompleted}"
+                    Margin="4,0,4,0"
+                    Command="{Binding FilterJobsCommand}"
+                    CommandParameter="Completed">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Classes="statusDot" Fill="{DynamicResource SuccessBrush}"/>
+                        <TextBlock Text="Completed / Staged" Classes="caption"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding CompletedJobs}" Classes="metricValue"/>
+                </StackPanel>
+            </Button>
+
+            <Button Classes="metricTile"
+                    Classes.selected="{Binding IsFilterFailed}"
+                    Margin="8,0,0,0"
+                    Command="{Binding FilterJobsCommand}"
+                    CommandParameter="Failed">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Classes="statusDot" Fill="{DynamicResource DangerBrush}"/>
+                        <TextBlock Text="Failed / Halted" Classes="caption"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding FailedJobs}" Classes="metricValue"/>
+                </StackPanel>
+            </Button>
+        </UniformGrid>
+
+        <!-- Jobs List DataGrid -->
+        <Border Grid.Row="2" Classes="surfaceCard" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
+            <Grid>
+                <DataGrid ItemsSource="{Binding FilteredJobs}"
+                          IsVisible="{Binding HasJobs}"
+                          SelectedItem="{Binding SelectedJob, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Job ID" Binding="{Binding JobId}" FontWeight="SemiBold" FontFamily="{DynamicResource CodeFontFamily}" Width="160"/>
+                        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="110"/>
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="130"/>
+                        <DataGridTextColumn Header="Operator" Binding="{Binding Operator}" Width="150"/>
+                        <DataGridTextColumn Header="Created at" Binding="{Binding CreatedAt}" FontFamily="{DynamicResource CodeFontFamily}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock IsVisible="{Binding !HasJobs}"
+                           Text="No upgrade jobs recorded in SQLite StateStore yet. Generate a plan in Stage 2 or execute a run in Stage 3."
+                           Classes="caption"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Selected Job Summary & Lease Action Bar -->
+        <Border Grid.Row="3" Classes="recessedBox" Padding="14,10" Margin="0,0,0,14">
+            <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding JobSummaryText}"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent"
+                                Height="32"
+                                IsEnabled="{Binding HasSelectedJob}"
+                                Command="{Binding ResumeJobCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Play" FontSize="12"/>
+                                <TextBlock Text="Resume job" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="32"
+                                IsEnabled="{Binding HasSelectedJob}"
+                                Command="{Binding CleanupPackagesCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Delete" FontSize="12"/>
+                                <TextBlock Text="Clean inactive packages" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="32"
+                                IsEnabled="{Binding HasSelectedJob}"
+                                Command="{Binding CancelJobLeaseCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Cancel" FontSize="12"/>
+                                <TextBlock Text="Release lease" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle"
+                                Height="32"
+                                IsEnabled="{Binding HasSelectedJob}"
+                                Command="{Binding DeleteSelectedJobCommand}"
+                                ToolTip.Tip="Permanently remove this inactive job from SQLite StateStore">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="Delete" FontSize="12"/>
+                                <TextBlock Text="Delete job" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Action Feedback Line (shows cancel/cleanup success or StateConflictError details) -->
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasActionMessage}">
+                    <Ellipse Classes="statusDot" IsVisible="{Binding ActionSucceeded}" Fill="{DynamicResource SuccessBrush}"/>
+                    <Ellipse Classes="statusDot" IsVisible="{Binding !ActionSucceeded}" Fill="{DynamicResource DangerBrush}"/>
+                    <SelectableTextBlock Text="{Binding ActionMessage}"
+                                         FontSize="11.5"
+                                         FontFamily="{DynamicResource CodeFontFamily}"
+                                         TextWrapping="Wrap"
+                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Selected Job Devices Breakdown -->
+        <Border Grid.Row="4" Classes="surfaceCard" Padding="0" ClipToBounds="True">
+            <Grid>
+                <DataGrid ItemsSource="{Binding SelectedJobDevices}"
+                          IsVisible="{Binding HasSelectedJob}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" FontWeight="SemiBold" Width="150"/>
+                        <DataGridTextColumn Header="IP address" Binding="{Binding IpAddress}" FontFamily="{DynamicResource CodeFontFamily}" Width="130"/>
+                        <DataGridTextColumn Header="Platform" Binding="{Binding Platform}" Width="120"/>
+                        <DataGridTextColumn Header="Target" Binding="{Binding TargetVersion}" FontFamily="{DynamicResource CodeFontFamily}" Width="100"/>
+                        <DataGridTextColumn Header="Batch" Binding="{Binding BatchNumber}" FontFamily="{DynamicResource CodeFontFamily}" Width="70"/>
+                        <DataGridTextColumn Header="State" Binding="{Binding State}" Width="130"/>
+                        <DataGridTextColumn Header="Attempt" Binding="{Binding Attempt}" FontFamily="{DynamicResource CodeFontFamily}" Width="80"/>
+                        <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock IsVisible="{Binding !HasSelectedJob}"
+                           Text="Select a job above to inspect per-device states, batch assignments, and failure messages."
+                           Classes="caption"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

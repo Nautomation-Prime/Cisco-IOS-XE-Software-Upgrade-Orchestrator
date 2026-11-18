@@ -1,0 +1,443 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+        x:Class="CiscoUpgradeOrchestrator.Gui.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Cisco IOS-XE Software Upgrade Orchestrator"
+        Icon="/Assets/app.ico"
+        Width="1320" Height="860"
+        MinWidth="1020" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="44">
+
+    <!-- Native macOS Global Menu Bar (automatically shown in macOS top menu bar; hidden on Windows) -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="Navigate">
+                <NativeMenu>
+                    <NativeMenuItem Header="Stage 1: Inventory" Gesture="Meta+D1" Command="{Binding SelectStage1Command}"/>
+                    <NativeMenuItem Header="Stage 2: Plan &amp; Batches" Gesture="Meta+D2" Command="{Binding SelectStage2Command}"/>
+                    <NativeMenuItem Header="Stage 3: Execute" Gesture="Meta+D3" Command="{Binding SelectStage3Command}"/>
+                    <NativeMenuItem Header="Stage 4: History" Gesture="Meta+D4" Command="{Binding SelectStage4Command}"/>
+                    <NativeMenuItemSeparator/>
+                    <NativeMenuItem Header="Add Switch Card" Gesture="Meta+N" Command="{Binding AddSwitchFromShortcutCommand}"/>
+                </NativeMenu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="Tools">
+                <NativeMenu>
+                    <NativeMenuItem Header="SSH Credentials Vault" Gesture="Meta+K" Command="{Binding OpenCredentialsCommand}"/>
+                    <NativeMenuItem Header="Configuration (config.yaml)" Gesture="Meta+E" Command="{Binding OpenConfigCommand}"/>
+                    <NativeMenuItem Header="Settings &amp; Python Runtime" Gesture="Meta+OemComma" Command="{Binding OpenSettingsCommand}"/>
+                </NativeMenu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="View">
+                <NativeMenu>
+                    <NativeMenuItem Header="Toggle Theme" Command="{Binding ToggleThemeCommand}"/>
+                    <NativeMenuItemSeparator/>
+                    <NativeMenuItem Header="Zoom In" Gesture="Meta+Add" Command="{Binding ZoomInCommand}"/>
+                    <NativeMenuItem Header="Zoom Out" Gesture="Meta+Subtract" Command="{Binding ZoomOutCommand}"/>
+                    <NativeMenuItem Header="Actual Size" Gesture="Meta+D0" Command="{Binding ResetZoomCommand}"/>
+                </NativeMenu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
+    <Window.Styles>
+        <!-- Standard Windows 11 Caption Buttons (Minimize ─, Maximize □ / Restore ❐, Close ✕) -->
+        <Style Selector="Button.titleCaptionButton">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.titleCaptionButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+        </Style>
+        <Style Selector="Button.titleCaptionButton:pressed">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}"/>
+        </Style>
+
+        <Style Selector="Button.titleCloseButton">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.titleCloseButton:pointerover">
+            <Setter Property="Background" Value="#E81123"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.titleCloseButton:pressed">
+            <Setter Property="Background" Value="#C4101F"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- macOS Traffic Light Window Buttons (Top-Left on macOS) -->
+        <Style Selector="Button.macTrafficLight">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="MinWidth" Value="12"/>
+            <Setter Property="MinHeight" Value="12"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.macClose">
+            <Setter Property="Background" Value="#FF5F56"/>
+            <Setter Property="BorderBrush" Value="#E0443E"/>
+        </Style>
+        <Style Selector="Button.macMinimize">
+            <Setter Property="Background" Value="#FFBD2E"/>
+            <Setter Property="BorderBrush" Value="#DEA123"/>
+        </Style>
+        <Style Selector="Button.macMaximize">
+            <Setter Property="Background" Value="#27C93F"/>
+            <Setter Property="BorderBrush" Value="#1AAB29"/>
+        </Style>
+        <Style Selector="StackPanel.macTrafficGroup Path.macGlyph">
+            <Setter Property="Opacity" Value="0"/>
+        </Style>
+        <Style Selector="StackPanel.macTrafficGroup:pointerover Path.macGlyph">
+            <Setter Property="Opacity" Value="0.75"/>
+        </Style>
+
+        <!-- High-contrast number inside active/completed step circle -->
+        <Style Selector="Border.stepNumber > TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Border.stepNumber.active > TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Border.stepNumber.completed > TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="44,*">
+
+        <!-- Row 0: Custom Title Bar with OS-Aware Chrome (macOS Traffic Lights Left OR Windows Caption Right) -->
+        <Border Grid.Row="0"
+                x:Name="TitleBarHost"
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Height="44">
+
+                <!-- macOS Traffic Lights (Visible ONLY on macOS) -->
+                <StackPanel Grid.Column="0"
+                            x:Name="MacTrafficLights"
+                            Classes="macTrafficGroup"
+                            IsVisible="{Binding IsMacOS}"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="16,0,4,0"
+                            VerticalAlignment="Center">
+                    <Button Classes="macTrafficLight macClose" Click="OnCloseClick" ToolTip.Tip="Close (⌘W)">
+                        <Path Classes="macGlyph" Data="M 1.5,1.5 L 5.5,5.5 M 5.5,1.5 L 1.5,5.5" Width="7" Height="7" Stroke="#4D0000" StrokeThickness="1.2"/>
+                    </Button>
+                    <Button Classes="macTrafficLight macMinimize" Click="OnMinimizeClick" ToolTip.Tip="Minimize">
+                        <Path Classes="macGlyph" Data="M 1,3.5 L 6,3.5" Width="7" Height="7" Stroke="#6E4400" StrokeThickness="1.2"/>
+                    </Button>
+                    <Button Classes="macTrafficLight macMaximize" Click="OnMaximizeRestoreClick" ToolTip.Tip="Zoom / Maximize">
+                        <Path Classes="macGlyph" Data="M 3.5,1 L 3.5,6 M 1,3.5 L 6,3.5" Width="7" Height="7" Stroke="#004D00" StrokeThickness="1.2"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Branding & Title -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <Image Source="/Assets/icon.png" Width="20" Height="20" VerticalAlignment="Center"/>
+                    <TextBlock Text="Cisco IOS-XE Upgrade Orchestrator"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+
+                <!-- Draggable Center Zone -->
+                <Panel Grid.Column="2" Background="Transparent" PointerPressed="OnTitleBarPointerPressed" DoubleTapped="OnTitleBarDoubleTapped"/>
+
+                <!-- Trailing Utility Strip (Python status, Config, Settings, Theme) -->
+                <StackPanel Grid.Column="3"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center">
+
+                    <!-- Live Python Connector Status -->
+                    <Button Classes="titleUtility"
+                            Command="{Binding OpenSettingsCommand}"
+                            ToolTip.Tip="{Binding SettingsTooltip}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Classes="statusDot"
+                                     IsVisible="{Binding IsPythonReady}"
+                                     Fill="{DynamicResource SuccessBrush}"/>
+                            <Ellipse Classes="statusDot"
+                                     IsVisible="{Binding !IsPythonReady}"
+                                     Fill="{DynamicResource WarningBrush}"/>
+                            <TextBlock Text="{Binding PythonStatusText}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Width="1" Height="16" Margin="4,0" Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                    <!-- Encrypted SSH Credentials Vault Utility -->
+                    <Button Classes="titleUtility"
+                            Classes.active="{Binding IsCredentialsActive}"
+                            Command="{Binding OpenCredentialsCommand}"
+                            ToolTip.Tip="{Binding CredentialsTooltip}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="Permissions" FontSize="13"/>
+                            <TextBlock Text="Credentials" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Config Utility -->
+                    <Button Classes="titleUtility"
+                            Classes.active="{Binding IsConfigActive}"
+                            Command="{Binding OpenConfigCommand}"
+                            ToolTip.Tip="{Binding ConfigTooltip}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="Document" FontSize="13"/>
+                            <TextBlock Text="Config" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Settings Utility -->
+                    <Button Classes="titleUtility"
+                            Classes.active="{Binding IsSettingsActive}"
+                            Command="{Binding OpenSettingsCommand}"
+                            ToolTip.Tip="{Binding SettingsTooltip}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="Settings" FontSize="13"/>
+                            <TextBlock Text="Settings" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Theme Toggle -->
+                    <Button Classes="titleUtility"
+                            Command="{Binding ToggleThemeCommand}"
+                            ToolTip.Tip="Switch between System, Dark, and Light themes">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="{Binding ThemeSymbol}" FontSize="13"/>
+                            <TextBlock Text="{Binding ThemeButtonText}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Standard Windows/Linux Caption Buttons (Normal ─, □ / ❐, ✕ — Visible on Windows/Linux) -->
+                <StackPanel Grid.Column="4"
+                            x:Name="WindowsCaptionButtons"
+                            IsVisible="{Binding IsWindowsOrLinux}"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Stretch">
+                    <!-- Normal Minimize (─) -->
+                    <Button Classes="titleCaptionButton" Click="OnMinimizeClick" ToolTip.Tip="Minimize">
+                        <Path Data="M 0,5 L 10,5"
+                              Width="10" Height="10"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Button>
+
+                    <!-- Normal Maximize (□) / Restore Down (❐) -->
+                    <Button Classes="titleCaptionButton" Click="OnMaximizeRestoreClick" ToolTip.Tip="Maximize / Restore">
+                        <Grid Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path x:Name="MaximizeGlyph"
+                                  Data="M 0.5,0.5 L 9.5,0.5 L 9.5,9.5 L 0.5,9.5 Z"
+                                  Width="10" Height="10"
+                                  Stroke="{Binding $parent[Button].Foreground}"
+                                  StrokeThickness="1"/>
+                            <Path x:Name="RestoreGlyph"
+                                  IsVisible="False"
+                                  Data="M 2.5,2.5 L 2.5,0.5 L 9.5,0.5 L 9.5,7.5 L 7.5,7.5 M 0.5,2.5 L 7.5,2.5 L 7.5,9.5 L 0.5,9.5 Z"
+                                  Width="10" Height="10"
+                                  Stroke="{Binding $parent[Button].Foreground}"
+                                  StrokeThickness="1"/>
+                        </Grid>
+                    </Button>
+
+                    <!-- Normal Close (✕) -->
+                    <Button Classes="titleCloseButton" Click="OnCloseClick" ToolTip.Tip="Close">
+                        <Path Data="M 0.5,0.5 L 9.5,9.5 M 9.5,0.5 L 0.5,9.5"
+                              Width="10" Height="10"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.1"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 1: Scalable Workspace (Horizontal Stepper + Active Stage Host) -->
+        <LayoutTransformControl Grid.Row="1">
+            <LayoutTransformControl.LayoutTransform>
+                <ScaleTransform ScaleX="{Binding UiScale}" ScaleY="{Binding UiScale}"/>
+            </LayoutTransformControl.LayoutTransform>
+
+            <Grid RowDefinitions="Auto,*" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+
+                <!-- Horizontal 4-Stage Pipeline Stepper -->
+                <Border Grid.Row="0"
+                        Padding="28,12,28,14"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto">
+
+                        <!-- 4 Stage Chips Joined by Hairline Connectors -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+
+                            <!-- Stage 1: Inventory -->
+                            <Button Classes="stepChip"
+                                    Classes.active="{Binding IsInventoryActive}"
+                                    IsEnabled="{Binding CanNavigateToSetupStages}"
+                                    Command="{Binding SelectStage1Command}"
+                                    ToolTip.Tip="{Binding Stage1Tooltip}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="stepNumber"
+                                            Classes.active="{Binding IsInventoryActive}"
+                                            Classes.completed="{Binding IsInventoryCompleted}">
+                                        <TextBlock Text="1" FontWeight="SemiBold" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Inventory" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding InventoryStageSubtitle}" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Hairline Connector -->
+                            <Border Width="24" Height="1" Margin="6,0"
+                                    Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Stage 2: Plan & Batches -->
+                            <Button Classes="stepChip"
+                                    Classes.active="{Binding IsPlannerActive}"
+                                    IsEnabled="{Binding CanNavigateToSetupStages}"
+                                    Command="{Binding SelectStage2Command}"
+                                    ToolTip.Tip="{Binding Stage2Tooltip}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="stepNumber"
+                                            Classes.active="{Binding IsPlannerActive}"
+                                            Classes.completed="{Binding IsPlannerCompleted}">
+                                        <TextBlock Text="2" FontWeight="SemiBold" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Plan &amp; Batches" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding PlannerStageSubtitle}" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Hairline Connector -->
+                            <Border Width="24" Height="1" Margin="6,0"
+                                    Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Stage 3: Live Execution -->
+                            <Button Classes="stepChip"
+                                    Classes.active="{Binding IsExecutionActive}"
+                                    Command="{Binding SelectStage3Command}"
+                                    ToolTip.Tip="{Binding Stage3Tooltip}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="stepNumber"
+                                            Classes.active="{Binding IsExecutionActive}">
+                                        <TextBlock Text="3" FontWeight="SemiBold" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Execute" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding ExecutionStageSubtitle}" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Hairline Connector -->
+                            <Border Width="24" Height="1" Margin="6,0"
+                                    Background="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+
+                            <!-- Stage 4: StateStore & History -->
+                            <Button Classes="stepChip"
+                                    Classes.active="{Binding IsHistoryActive}"
+                                    Command="{Binding SelectStage4Command}"
+                                    ToolTip.Tip="{Binding Stage4Tooltip}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="stepNumber"
+                                            Classes.active="{Binding IsHistoryActive}">
+                                        <TextBlock Text="4" FontWeight="SemiBold" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="History" FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding HistoryStageSubtitle}" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+
+                        </StackPanel>
+
+                        <!-- Right Context Indicator: Execution Lock OR Return to Workflow -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+
+                            <!-- Live Lock Notice while Upgrade Runs -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                                        IsVisible="{Binding IsExecutionRunning}">
+                                <Ellipse Classes="statusDot" Fill="{DynamicResource WarningBrush}"/>
+                                <TextBlock Text="Execution active — stages 1 and 2 locked"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+
+                            <!-- Back to Workflow Pill when viewing Config or Settings -->
+                            <Button Classes="subtle"
+                                    Height="32"
+                                    Padding="12,4"
+                                    IsVisible="{Binding IsUtilityViewActive}"
+                                    Command="{Binding ReturnToWorkflowCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="ChevronLeft" FontSize="12"/>
+                                    <TextBlock Text="Back to workflow" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Active Stage / Utility View Host -->
+                <ContentControl Grid.Row="1" Content="{Binding CurrentView}" Margin="0"/>
+
+            </Grid>
+        </LayoutTransformControl>
+
+    </Grid>
+</Window>

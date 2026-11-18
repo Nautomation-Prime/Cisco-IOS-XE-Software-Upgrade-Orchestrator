@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:CiscoUpgradeOrchestrator.Gui.ViewModels"
+             x:Class="CiscoUpgradeOrchestrator.Gui.Views.ConfigView"
+             x:DataType="vm:ConfigViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="28,20,28,20">
+
+        <!-- Title & Action Toolstrip -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Orchestrator configuration" Classes="pageTitle"/>
+                <TextBlock Text="Edit config.yaml parameters, timeouts, and safety guardrails (SSH credentials live in the Encrypted Vault)"
+                           Classes="caption"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Classes="subtle"
+                        Height="32"
+                        Command="{Binding LoadConfigCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Refresh" FontSize="13"/>
+                        <TextBlock Text="Reload" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="accent"
+                        Height="32"
+                        Command="{Binding SaveConfigCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="Save" FontSize="13"/>
+                        <TextBlock Text="Save changes" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Status Strip -->
+        <Border Grid.Row="1" Classes="recessedBox" Padding="14,10" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Ellipse Grid.Column="0" Classes="statusDot" Fill="{DynamicResource InfoBrush}" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding StatusMessage}"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding ConfigPath}"
+                           FontSize="11"
+                           FontFamily="{DynamicResource CodeFontFamily}"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+            </Grid>
+        </Border>
+
+        <!-- YAML Editor Surface -->
+        <Border Grid.Row="2" Classes="surfaceCard" Padding="14">
+            <Border Classes="recessedBox" Padding="12">
+                <TextBox Text="{Binding ConfigText, Mode=TwoWay}"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         FontFamily="{DynamicResource CodeFontFamily}"
+                         FontSize="12.5"
+                         LineHeight="20"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         VerticalAlignment="Stretch"
+                         HorizontalAlignment="Stretch"/>
+            </Border>
+        </Border>
+
+    </Grid>
+</UserControl>

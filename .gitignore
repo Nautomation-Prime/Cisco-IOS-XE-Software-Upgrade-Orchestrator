@@ -48,6 +48,17 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Virtual environments
+.venv/
+
+# .NET / Avalonia build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 *.tmp
 
 # Credentials

@@ -133,7 +133,7 @@ def require_approval(config: Dict[str, Any], message: str, approved: bool) -> No
 
 
 @click.group()
-@click.version_option(version="0.2.0")
+@click.version_option(version="1.0.0")
 @click.option(
     "--config",
     "config_file",
